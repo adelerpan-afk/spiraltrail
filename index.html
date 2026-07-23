@@ -1,20 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spiral Animation - Export 4K Frames</title>
-    <!-- ============================================
-    CSS
-    ============================================ -->
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spiral Animation - Fixed Center & Colors</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js">
+    </script>
     <style>
-        /* ---------- RESET ---------- */
+        /* ============================================================
+           RESET & BASE
+           ============================================================ */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             background: #0a0a0a;
             overflow: hidden;
@@ -25,8 +26,10 @@
             justify-content: center;
             align-items: center;
         }
-        
-        /* ---------- CANVAS WRAPPER (16:9) ---------- */
+
+        /* ============================================================
+           CANVAS WRAPPER - 16:9
+           ============================================================ */
         #canvas-wrapper {
             position: relative;
             width: min(100vw, calc(100vh * 16 / 9));
@@ -36,8 +39,8 @@
             overflow: hidden;
             box-shadow: 0 0 60px rgba(79, 195, 247, 0.05);
         }
-        
-        #canvas-main {
+
+        canvas {
             position: absolute;
             top: 0;
             left: 0;
@@ -45,8 +48,10 @@
             height: 100%;
             display: block;
         }
-        
-        /* ---------- OVERLAY (Stats + Timer) ---------- */
+
+        /* ============================================================
+           OVERLAY - Stats & Timer
+           ============================================================ */
         #overlay {
             position: absolute;
             bottom: 20px;
@@ -56,7 +61,7 @@
             z-index: 100;
             pointer-events: none;
         }
-        
+
         #stats {
             color: rgba(255, 255, 255, 0.5);
             font-family: 'Courier New', monospace;
@@ -66,9 +71,8 @@
             padding: 6px 12px;
             border-radius: 6px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            pointer-events: none;
         }
-        
+
         #timer {
             color: rgba(255, 255, 255, 0.7);
             font-family: 'Courier New', monospace;
@@ -79,14 +83,22 @@
             padding: 6px 14px;
             border-radius: 6px;
             border: 1px solid rgba(255, 255, 255, 0.05);
-            pointer-events: none;
             min-width: 70px;
             text-align: center;
         }
-        #timer .label { font-size: 9px; color: rgba(255,255,255,0.3); font-weight: 400; }
-        #timer .time { color: #4fc3f7; font-weight: 700; }
-        
-        /* ---------- CONTROL PANEL ---------- */
+        #timer .label {
+            font-size: 9px;
+            color: rgba(255, 255, 255, 0.3);
+            font-weight: 400;
+        }
+        #timer .time {
+            color: #4fc3f7;
+            font-weight: 700;
+        }
+
+        /* ============================================================
+           CONTROL PANEL
+           ============================================================ */
         #control-panel {
             position: fixed;
             top: 20px;
@@ -105,27 +117,46 @@
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.9);
             transition: transform 0.3s ease, opacity 0.3s ease;
         }
-        #control-panel::-webkit-scrollbar { width: 3px; }
-        #control-panel::-webkit-scrollbar-track { background: rgba(255,255,255,0.03); border-radius:2px; }
-        #control-panel::-webkit-scrollbar-thumb { background: rgba(79,195,247,0.3); border-radius:2px; }
+        #control-panel::-webkit-scrollbar {
+            width: 3px;
+        }
+        #control-panel::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 2px;
+        }
+        #control-panel::-webkit-scrollbar-thumb {
+            background: rgba(79, 195, 247, 0.3);
+            border-radius: 2px;
+        }
         #control-panel.collapsed {
             transform: translateX(calc(100% + 20px));
             opacity: 0;
         }
-        
+
         .panel-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
             margin-bottom: 14px;
             padding-bottom: 10px;
-            border-bottom: 1px solid rgba(255,255,255,0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
         }
-        .panel-header h3 { font-size: 13px; font-weight: 600; color: #fff; letter-spacing:0.5px; opacity:0.9; }
-        .panel-header .controls { display: flex; gap: 5px; flex-wrap: wrap; }
+        .panel-header h3 {
+            font-size: 13px;
+            font-weight: 600;
+            color: #fff;
+            letter-spacing: 0.5px;
+            opacity: 0.9;
+        }
+        .panel-header .controls {
+            display: flex;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
         .panel-toggle {
-            background: rgba(255,255,255,0.06);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             padding: 3px 8px;
             border-radius: 4px;
@@ -133,14 +164,19 @@
             font-size: 11px;
             transition: all 0.2s;
         }
-        .panel-toggle:hover { background: rgba(255,255,255,0.12); }
-        
-        .control-group { margin-bottom: 12px; }
+        .panel-toggle:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        /* --- groups --- */
+        .control-group {
+            margin-bottom: 12px;
+        }
         .control-group-title {
             font-size: 10px;
             text-transform: uppercase;
             letter-spacing: 1px;
-            color: rgba(255,255,255,0.35);
+            color: rgba(255, 255, 255, 0.35);
             margin-bottom: 6px;
             font-weight: 700;
             cursor: pointer;
@@ -148,29 +184,39 @@
             justify-content: space-between;
             align-items: center;
             padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
             user-select: none;
         }
-        .control-group-title:hover { color: rgba(255,255,255,0.6); }
+        .control-group-title:hover {
+            color: rgba(255, 255, 255, 0.6);
+        }
         .control-group-title .toggle-icon {
             font-size: 10px;
             transition: transform 0.3s;
         }
-        .control-group-title .toggle-icon.collapsed { transform: rotate(-90deg); }
+        .control-group-title .toggle-icon.collapsed {
+            transform: rotate(-90deg);
+        }
+
         .control-group-body {
             overflow: hidden;
             transition: max-height 0.3s ease;
             max-height: 2000px;
         }
-        .control-group-body.collapsed { max-height: 0; }
-        
-        .control-item { margin-bottom: 8px; }
+        .control-group-body.collapsed {
+            max-height: 0;
+        }
+
+        /* --- items --- */
+        .control-item {
+            margin-bottom: 8px;
+        }
         .control-item label {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 11px;
-            color: rgba(255,255,255,0.7);
+            color: rgba(255, 255, 255, 0.7);
             margin-bottom: 3px;
         }
         .control-item label .value {
@@ -181,14 +227,14 @@
             min-width: 35px;
             text-align: right;
         }
-        
-        /* Inputs */
+
+        /* --- inputs --- */
         input[type="range"] {
             width: 100%;
             height: 3px;
             -webkit-appearance: none;
             appearance: none;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
             border-radius: 2px;
             outline: none;
         }
@@ -200,43 +246,55 @@
             border-radius: 50%;
             background: #4fc3f7;
             cursor: pointer;
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 2px solid rgba(255, 255, 255, 0.15);
             transition: all 0.2s;
         }
-        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.1); background: #29b6f6; }
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.1);
+            background: #29b6f6;
+        }
         input[type="range"]::-moz-range-thumb {
             width: 12px;
             height: 12px;
             border-radius: 50%;
             background: #4fc3f7;
             cursor: pointer;
-            border: 2px solid rgba(255,255,255,0.15);
+            border: 2px solid rgba(255, 255, 255, 0.15);
         }
-        
+
         input[type="color"] {
             width: 32px;
             height: 26px;
             padding: 2px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             border-radius: 4px;
             cursor: pointer;
         }
-        input[type="color"]::-webkit-color-swatch-wrapper { padding: 2px; }
-        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 2px; }
-        
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 2px;
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none;
+            border-radius: 2px;
+        }
+
+        /* --- color controls --- */
         .color-control {
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        .color-control input[type="color"] { flex-shrink: 0; }
+        .color-control input[type="color"] {
+            flex-shrink: 0;
+        }
         .color-control .color-hex {
             font-family: 'Courier New', monospace;
             font-size: 10px;
-            color: rgba(255,255,255,0.5);
+            color: rgba(255, 255, 255, 0.5);
             min-width: 50px;
         }
+
         .color-presets {
             display: flex;
             gap: 4px;
@@ -246,13 +304,17 @@
             width: 22px;
             height: 22px;
             border-radius: 50%;
-            border: 2px solid rgba(255,255,255,0.1);
+            border: 2px solid rgba(255, 255, 255, 0.1);
             cursor: pointer;
             transition: all 0.2s;
             padding: 0;
         }
-        .color-preset-btn:hover { transform: scale(1.15); border-color: rgba(255,255,255,0.3); }
-        
+        .color-preset-btn:hover {
+            transform: scale(1.15);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        /* --- presets --- */
         .preset-buttons {
             display: flex;
             flex-wrap: wrap;
@@ -263,30 +325,33 @@
             flex: 1;
             min-width: 50px;
             padding: 4px 6px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
             border-radius: 4px;
-            color: rgba(255,255,255,0.6);
+            color: rgba(255, 255, 255, 0.6);
             font-size: 10px;
             cursor: pointer;
             transition: all 0.2s;
             text-align: center;
         }
-        .preset-btn:hover { background: rgba(255,255,255,0.1); color: white; }
+        .preset-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
         .preset-btn.active {
-            background: rgba(79,195,247,0.15);
+            background: rgba(79, 195, 247, 0.15);
             border-color: #4fc3f7;
             color: #4fc3f7;
         }
-        
-        /* Buttons */
+
+        /* --- buttons --- */
         #toggle-panel-btn {
             position: fixed;
             top: 20px;
             right: 20px;
             z-index: 1001;
-            background: rgba(0,0,0,0.6);
-            border: 1px solid rgba(255,255,255,0.1);
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
             color: white;
             padding: 6px 12px;
             border-radius: 6px;
@@ -295,8 +360,11 @@
             transition: all 0.3s;
             backdrop-filter: blur(5px);
         }
-        #toggle-panel-btn:hover { background: rgba(255,255,255,0.08); transform: scale(1.05); }
-        
+        #toggle-panel-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: scale(1.05);
+        }
+
         .reset-btn {
             padding: 3px 10px;
             border-radius: 4px;
@@ -306,91 +374,61 @@
             border: 1px solid;
         }
         .reset-animation-btn {
-            background: rgba(255,193,7,0.15);
-            border-color: rgba(255,193,7,0.2);
+            background: rgba(255, 193, 7, 0.15);
+            border-color: rgba(255, 193, 7, 0.2);
             color: #ffd54f;
         }
-        .reset-animation-btn:hover { background: rgba(255,193,7,0.25); }
+        .reset-animation-btn:hover {
+            background: rgba(255, 193, 7, 0.25);
+        }
         .reset-settings-btn {
-            background: rgba(244,67,54,0.15);
-            border-color: rgba(244,67,54,0.2);
+            background: rgba(244, 67, 54, 0.15);
+            border-color: rgba(244, 67, 54, 0.2);
             color: #ef5350;
         }
-        .reset-settings-btn:hover { background: rgba(244,67,54,0.25); }
-        
-        /* ---------- EXPORT SECTION ---------- */
-        .export-section {
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid rgba(255,255,255,0.06);
+        .reset-settings-btn:hover {
+            background: rgba(244, 67, 54, 0.25);
         }
-        .export-section .export-title {
-            font-size: 10px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            color: rgba(255,255,255,0.35);
-            margin-bottom: 8px;
-            font-weight: 700;
-        }
-        .export-buttons {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-        .export-btn {
-            flex: 1;
-            min-width: 80px;
-            padding: 6px 10px;
-            background: rgba(79,195,247,0.12);
-            border: 1px solid rgba(79,195,247,0.2);
-            border-radius: 4px;
-            color: #4fc3f7;
-            font-size: 10px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            text-align: center;
-        }
-        .export-btn:hover {
-            background: rgba(79,195,247,0.2);
-            border-color: rgba(79,195,247,0.4);
-        }
-        .export-btn.export-all {
-            background: rgba(255,193,7,0.12);
-            border-color: rgba(255,193,7,0.2);
-            color: #ffd54f;
-        }
-        .export-btn.export-all:hover {
-            background: rgba(255,193,7,0.2);
-            border-color: rgba(255,193,7,0.4);
-        }
-        .export-progress {
-            margin-top: 8px;
-            font-size: 10px;
-            color: rgba(255,255,255,0.4);
-            font-family: 'Courier New', monospace;
-            text-align: center;
-            display: none;
-        }
-        .export-progress.active { display: block; }
-        
-        /* ---------- RESPONSIVE ---------- */
+
+        /* ============================================================
+           RESPONSIVE
+           ============================================================ */
         @media (max-width: 768px) {
-            #control-panel { width: 280px; right: 10px; top: 10px; padding: 12px; font-size: 12px; max-height: calc(100vh - 20px); }
-            #toggle-panel-btn { top: 10px; right: 10px; padding: 5px 10px; font-size: 14px; }
-            #overlay { bottom: 12px; left: 12px; gap: 10px; flex-direction: column; }
-            #stats, #timer { font-size: 10px; padding: 4px 10px; }
+            #control-panel {
+                width: 280px;
+                right: 10px;
+                top: 10px;
+                padding: 12px;
+                font-size: 12px;
+                max-height: calc(100vh - 20px);
+            }
+            #toggle-panel-btn {
+                top: 10px;
+                right: 10px;
+                padding: 5px 10px;
+                font-size: 14px;
+            }
+            #overlay {
+                bottom: 12px;
+                left: 12px;
+                gap: 10px;
+                flex-direction: column;
+            }
+            #stats,
+            #timer {
+                font-size: 10px;
+                padding: 4px 10px;
+            }
         }
     </style>
 </head>
 <body>
-    <!-- ============================================
-    HTML
-    ============================================ -->
-    
-    <!-- CANVAS -->
+
+    <!-- ============================================================
+    CANVAS
+    ============================================================ -->
     <div id="canvas-wrapper">
-        <canvas id="canvas-main"></canvas>
+        <canvas id="canvas"></canvas>
         <div id="overlay">
             <div id="stats">FPS: 0 | Stars: 0/0</div>
             <div id="timer">
@@ -401,11 +439,15 @@
             </div>
         </div>
     </div>
-    
-    <!-- TOGGLE BUTTON -->
+
+    <!-- ============================================================
+    TOGGLE BUTTON
+    ============================================================ -->
     <button id="toggle-panel-btn">⚙️</button>
-    
-    <!-- CONTROL PANEL -->
+
+    <!-- ============================================================
+    CONTROL PANEL
+    ============================================================ -->
     <div id="control-panel">
         <div class="panel-header">
             <h3>🎛️ Control Panel</h3>
@@ -415,15 +457,22 @@
                 <button class="panel-toggle" id="collapse-panel">✕</button>
             </div>
         </div>
-        
+
         <!-- BASIC -->
         <div class="control-group">
-            <div class="control-group-title" data-target="basic">Basic <span class="toggle-icon">▼</span></div>
+            <div class="control-group-title" data-target="basic">
+                Basic <span class="toggle-icon">▼</span>
+            </div>
             <div class="control-group-body" id="basic">
+
+                <!-- Star Color -->
                 <div class="control-item">
-                    <label>Star Color <span class="color-hex" id="val-star-color">#FFFFFF</span></label>
+                    <label>
+                        Star Color
+                        <span class="color-hex" id="val-star-color">#FFFFFF</span>
+                    </label>
                     <div class="color-control">
-                        <input type="color" id="ctrl-star-color" value="#ffffff">
+                        <input type="color" id="ctrl-star-color" value="#ffffff" />
                         <div class="color-presets">
                             <button class="color-preset-btn" style="background:#ffffff;" data-color="#ffffff"></button>
                             <button class="color-preset-btn" style="background:#4fc3f7;" data-color="#4fc3f7"></button>
@@ -434,10 +483,15 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Trail Color -->
                 <div class="control-item">
-                    <label>Trail Color <span class="color-hex" id="val-trail-color">#FFFFFF</span></label>
+                    <label>
+                        Trail Color
+                        <span class="color-hex" id="val-trail-color">#FFFFFF</span>
+                    </label>
                     <div class="color-control">
-                        <input type="color" id="ctrl-trail-color" value="#ffffff">
+                        <input type="color" id="ctrl-trail-color" value="#ffffff" />
                         <div class="color-presets">
                             <button class="color-preset-btn" style="background:#ffffff;" data-color="#ffffff"></button>
                             <button class="color-preset-btn" style="background:#4fc3f7;" data-color="#4fc3f7"></button>
@@ -448,10 +502,15 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Background Color -->
                 <div class="control-item">
-                    <label>Background <span class="color-hex" id="val-bg-color">#000000</span></label>
+                    <label>
+                        Background
+                        <span class="color-hex" id="val-bg-color">#000000</span>
+                    </label>
                     <div class="color-control">
-                        <input type="color" id="ctrl-bg-color" value="#000000">
+                        <input type="color" id="ctrl-bg-color" value="#000000" />
                         <div class="color-presets">
                             <button class="color-preset-btn" style="background:#000000;" data-color="#000000"></button>
                             <button class="color-preset-btn" style="background:#0a0a1a;" data-color="#0a0a1a"></button>
@@ -460,60 +519,105 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Numeric basics -->
                 <div class="control-item">
-                    <label>Stars <span class="value" id="val-stars">5000</span></label>
-                    <input type="range" id="ctrl-stars" min="500" max="20000" step="100" value="5000">
+                    <label>
+                        Number of Stars
+                        <span class="value" id="val-stars">5000</span>
+                    </label>
+                    <input type="range" id="ctrl-stars" min="500" max="20000" step="100" value="5000" />
                 </div>
                 <div class="control-item">
-                    <label>Trail Length <span class="value" id="val-trail">80</span></label>
-                    <input type="range" id="ctrl-trail" min="10" max="200" step="1" value="80">
+                    <label>
+                        Trail Length
+                        <span class="value" id="val-trail">80</span>
+                    </label>
+                    <input type="range" id="ctrl-trail" min="10" max="200" step="1" value="80" />
                 </div>
                 <div class="control-item">
-                    <label>Duration (s) <span class="value" id="val-duration">15</span></label>
-                    <input type="range" id="ctrl-duration" min="5" max="40" step="0.5" value="15">
+                    <label>
+                        Duration (s)
+                        <span class="value" id="val-duration">15</span>
+                    </label>
+                    <input type="range" id="ctrl-duration" min="5" max="40" step="0.5" value="15" />
                 </div>
                 <div class="control-item">
-                    <label>Spiral Turns <span class="value" id="val-turns">6</span></label>
-                    <input type="range" id="ctrl-turns" min="2" max="15" step="0.5" value="6">
+                    <label>
+                        Spiral Turns
+                        <span class="value" id="val-turns">6</span>
+                    </label>
+                    <input type="range" id="ctrl-turns" min="2" max="15" step="0.5" value="6" />
                 </div>
             </div>
         </div>
-        
+
         <!-- ADVANCED -->
         <div class="control-group">
-            <div class="control-group-title" data-target="advanced">Advanced <span class="toggle-icon">▼</span></div>
+            <div class="control-group-title" data-target="advanced">
+                Advanced <span class="toggle-icon">▼</span>
+            </div>
             <div class="control-group-body" id="advanced">
                 <div class="control-item">
-                    <label>Camera Z <span class="value" id="val-camz">-400</span></label>
-                    <input type="range" id="ctrl-camz" min="-1000" max="-50" step="10" value="-400">
+                    <label>
+                        Camera Z
+                        <span class="value" id="val-camz">-400</span>
+                    </label>
+                    <input type="range" id="ctrl-camz" min="-1000" max="-50" step="10" value="-400" />
                 </div>
                 <div class="control-item">
-                    <label>Travel Dist <span class="value" id="val-travel">3400</span></label>
-                    <input type="range" id="ctrl-travel" min="500" max="8000" step="50" value="3400">
+                    <label>
+                        Travel Distance
+                        <span class="value" id="val-travel">3400</span>
+                    </label>
+                    <input type="range" id="ctrl-travel" min="500" max="8000" step="50" value="3400" />
                 </div>
                 <div class="control-item">
-                    <label>View Zoom <span class="value" id="val-zoom">100</span></label>
-                    <input type="range" id="ctrl-zoom" min="20" max="300" step="5" value="100">
+                    <label>
+                        View Zoom
+                        <span class="value" id="val-zoom">100</span>
+                    </label>
+                    <input type="range" id="ctrl-zoom" min="20" max="300" step="5" value="100" />
                 </div>
                 <div class="control-item">
-                    <label>Spiral Radius <span class="value" id="val-radius">170</span></label>
-                    <input type="range" id="ctrl-radius" min="50" max="400" step="5" value="170">
+                    <label>
+                        Spiral Radius
+                        <span class="value" id="val-radius">170</span>
+                    </label>
+                    <input type="range" id="ctrl-radius" min="50" max="400" step="5" value="170" />
                 </div>
                 <div class="control-item">
-                    <label>Star Opacity <span class="value" id="val-star-opacity">1.0</span></label>
-                    <input type="range" id="ctrl-star-opacity" min="0.1" max="1" step="0.05" value="1">
+                    <label>
+                        Star Opacity
+                        <span class="value" id="val-star-opacity">1.0</span>
+                    </label>
+                    <input type="range" id="ctrl-star-opacity" min="0.1" max="1" step="0.05" value="1" />
                 </div>
                 <div class="control-item">
-                    <label>Trail Opacity <span class="value" id="val-trail-opacity">1.0</span></label>
-                    <input type="range" id="ctrl-trail-opacity" min="0.1" max="1" step="0.05" value="1">
+                    <label>
+                        Trail Opacity
+                        <span class="value" id="val-trail-opacity">1.0</span>
+                    </label>
+                    <input type="range" id="ctrl-trail-opacity" min="0.1" max="1" step="0.05" value="1" />
+                </div>
+                <!-- tambahan minimal untuk testing -->
+                <div class="control-item">
+                    <label>
+                        Dist Range (min)
+                        <span class="value" id="val-dist-min">15</span>
+                    </label>
+                    <input type="range" id="ctrl-dist-min" min="5" max="50" step="1" value="15" />
                 </div>
                 <div class="control-item">
-                    <label>Trail Width Base <span class="value" id="val-trail-width">1.3</span></label>
-                    <input type="range" id="ctrl-trail-width" min="0.1" max="5" step="0.1" value="1.3">
+                    <label>
+                        Dist Range (max)
+                        <span class="value" id="val-dist-max">45</span>
+                    </label>
+                    <input type="range" id="ctrl-dist-max" min="10" max="80" step="1" value="45" />
                 </div>
             </div>
         </div>
-        
+
         <!-- PRESETS -->
         <div class="control-group">
             <div class="control-group-title">Presets</div>
@@ -526,32 +630,15 @@
                 <button class="preset-btn" data-preset="aurora">Aurora</button>
             </div>
         </div>
-        
-        <!-- EXPORT SECTION -->
-        <div class="export-section">
-            <div class="export-title">📸 Export 4K Frames</div>
-            <div class="export-buttons">
-                <button class="export-btn" id="export-single">Export Current Frame</button>
-                <button class="export-btn export-all" id="export-all">Export All Frames</button>
-            </div>
-            <div class="export-progress" id="export-progress">
-                <span id="export-status">Ready</span>
-            </div>
-            <div style="margin-top:6px;font-size:9px;color:rgba(255,255,255,0.25);text-align:center;">
-                3840 × 2160 · PNG Sequence
-            </div>
-        </div>
     </div>
 
-    <!-- ============================================
+    <!-- ============================================================
     JAVASCRIPT
-    ============================================ -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js">
-    </script>
+    ============================================================ -->
     <script>
-        // ============================================
+        // ================================================================
         // UTILITY
-        // ============================================
+        // ================================================================
         const Utils = {
             lerp: (a, b, t) => a + (b - a) * t,
             clamp: (v, min, max) => Math.min(Math.max(v, min), max),
@@ -562,13 +649,14 @@
                 const r = parseInt(h.substring(0, 2), 16);
                 const g = parseInt(h.substring(2, 4), 16);
                 const b = parseInt(h.substring(4, 6), 16);
-                return isNaN(r) ? `rgba(255,255,255,${opacity})` : `rgba(${r},${g},${b},${opacity})`;
+                if (isNaN(r) || isNaN(g) || isNaN(b)) return `rgba(255,255,255,${opacity})`;
+                return `rgba(${r},${g},${b},${opacity})`;
             }
         };
 
-        // ============================================
-        // CONFIG
-        // ============================================
+        // ================================================================
+        // CONFIGURATION
+        // ================================================================
         const DEFAULT_CONFIG = {
             numberOfStars: 5000,
             trailLength: 80,
@@ -597,22 +685,68 @@
 
         const PRESETS = {
             default: { ...DEFAULT_CONFIG },
-            performance: { ...DEFAULT_CONFIG, numberOfStars: 2000, trailLength: 40, dprCap: 1, dotSizeBase: 6,
-                frustumMargin: 150, starOpacity: 0.8, trailOpacity: 0.7 },
-            quality: { ...DEFAULT_CONFIG, numberOfStars: 15000, trailLength: 120, dprCap: 2, dotSizeBase: 10,
-                spiralTurns: 8, cameraTravelDistance: 5000 },
-            cinematic: { ...DEFAULT_CONFIG, numberOfStars: 8000, trailLength: 150, duration: 25, spiralTurns: 10,
-                cameraTravelDistance: 6000, spiralRadius: 250, distMax: 60, dotSizeBase: 12, starColor: '#4fc3f7',
-                trailColor: '#4fc3f7', bgColor: '#0a0a1a' },
-            neon: { ...DEFAULT_CONFIG, numberOfStars: 6000, trailLength: 100, duration: 18, spiralTurns: 7,
-                starColor: '#ff6b9d', trailColor: '#ff6b9d', bgColor: '#1a0a2e', starOpacity: 0.9, trailOpacity: 0.8 },
-            aurora: { ...DEFAULT_CONFIG, numberOfStars: 10000, trailLength: 130, duration: 22, spiralTurns: 9,
-                starColor: '#6bcb77', trailColor: '#4fc3f7', bgColor: '#0a1a2e', starOpacity: 0.8, trailOpacity: 0.6 }
+            performance: {
+                ...DEFAULT_CONFIG,
+                numberOfStars: 2000,
+                trailLength: 40,
+                dprCap: 1,
+                dotSizeBase: 6,
+                frustumMargin: 150,
+                starOpacity: 0.8,
+                trailOpacity: 0.7
+            },
+            quality: {
+                ...DEFAULT_CONFIG,
+                numberOfStars: 15000,
+                trailLength: 120,
+                dprCap: 2,
+                dotSizeBase: 10,
+                spiralTurns: 8,
+                cameraTravelDistance: 5000
+            },
+            cinematic: {
+                ...DEFAULT_CONFIG,
+                numberOfStars: 8000,
+                trailLength: 150,
+                duration: 25,
+                spiralTurns: 10,
+                cameraTravelDistance: 6000,
+                spiralRadius: 250,
+                distMax: 60,
+                dotSizeBase: 12,
+                starColor: '#4fc3f7',
+                trailColor: '#4fc3f7',
+                bgColor: '#0a0a1a'
+            },
+            neon: {
+                ...DEFAULT_CONFIG,
+                numberOfStars: 6000,
+                trailLength: 100,
+                duration: 18,
+                spiralTurns: 7,
+                starColor: '#ff6b9d',
+                trailColor: '#ff6b9d',
+                bgColor: '#1a0a2e',
+                starOpacity: 0.9,
+                trailOpacity: 0.8
+            },
+            aurora: {
+                ...DEFAULT_CONFIG,
+                numberOfStars: 10000,
+                trailLength: 130,
+                duration: 22,
+                spiralTurns: 9,
+                starColor: '#6bcb77',
+                trailColor: '#4fc3f7',
+                bgColor: '#0a1a2e',
+                starOpacity: 0.8,
+                trailOpacity: 0.6
+            }
         };
 
-        // ============================================
+        // ================================================================
         // OBJECT POOL
-        // ============================================
+        // ================================================================
         class ObjectPool {
             constructor(factory, size = 100) {
                 this.factory = factory;
@@ -628,11 +762,11 @@
             }
             releaseAll() { this.active = 0; }
         }
-        const v3Pool = new ObjectPool(() => ({ x: 0, y: 0, z: 0 }), 200);
+        const vector3Pool = new ObjectPool(() => ({ x: 0, y: 0, z: 0 }), 200);
 
-        // ============================================
+        // ================================================================
         // STAR SYSTEM
-        // ============================================
+        // ================================================================
         class StarSystem {
             constructor(cfg) {
                 this.cfg = cfg;
@@ -644,12 +778,12 @@
                 const n = this.count;
                 this.angles = new Float32Array(n);
                 this.distances = new Float32Array(n);
-                this.rotDir = new Float32Array(n);
-                this.expRates = new Float32Array(n);
+                this.rotationDirections = new Float32Array(n);
+                this.expansionRates = new Float32Array(n);
                 this.finalScales = new Float32Array(n);
-                this.spiralLocs = new Float32Array(n);
-                this.zPos = new Float32Array(n);
-                this.weights = new Float32Array(n);
+                this.spiralLocations = new Float32Array(n);
+                this.zPositions = new Float32Array(n);
+                this.strokeWeights = new Float32Array(n);
                 this.dx = new Float32Array(n);
                 this.dy = new Float32Array(n);
                 this.visible = new Uint8Array(n);
@@ -661,15 +795,15 @@
                     const a = Math.random() * Math.PI * 2;
                     this.angles[i] = a;
                     this.distances[i] = c.distMin + Math.random() * (c.distMax - c.distMin);
-                    this.rotDir[i] = Math.random() > 0.5 ? 1 : -1;
-                    this.expRates[i] = c.expMin + Math.random() * (c.expMax - c.expMin);
+                    this.rotationDirections[i] = Math.random() > 0.5 ? 1 : -1;
+                    this.expansionRates[i] = c.expMin + Math.random() * (c.expMax - c.expMin);
                     this.finalScales[i] = c.scaleMin + Math.random() * (c.scaleMax - c.scaleMin);
                     this.dx[i] = this.distances[i] * Math.cos(a);
                     this.dy[i] = this.distances[i] * Math.sin(a);
-                    this.spiralLocs[i] = (1 - Math.pow(1 - Math.random(), 3)) / 1.3;
+                    this.spiralLocations[i] = (1 - Math.pow(1 - Math.random(), 3)) / 1.3;
                     const z = c.cameraZ + Math.random() * (c.cameraTravelDistance + c.cameraZ - 0.5 * c.cameraZ);
-                    this.zPos[i] = lerp(z, c.cameraTravelDistance / 2, 0.3 * this.spiralLocs[i]);
-                    this.weights[i] = Math.pow(Math.random(), 2);
+                    this.zPositions[i] = lerp(z, c.cameraTravelDistance / 2, 0.3 * this.spiralLocations[i]);
+                    this.strokeWeights[i] = Math.pow(Math.random(), 2);
                 }
             }
             updateVisibility(ctrl, t1) {
@@ -683,16 +817,16 @@
                 const t2 = Utils.clamp((ctrl.time - 0.32) / (1 - 0.32), 0, 1);
                 const newCamZ = z + ctrl.ease(Math.pow(t2, 1.2), 1.8) * travel;
                 const left = -w / 2 - margin,
-                    right = w / 2 + margin,
-                    top = -h / 2 - margin,
+                    right = w / 2 + margin;
+                const top = -h / 2 - margin,
                     bottom = h / 2 + margin;
                 let count = 0;
                 for (let i = 0; i < this.count; i++) {
-                    const q = t1 - this.spiralLocs[i];
-                    if (q <= 0 || this.zPos[i] <= newCamZ) { this.visible[i] = 0; continue; }
-                    const depth = this.zPos[i] - newCamZ;
-                    const px = (zoom * (this.zPos[i] - z) * this.dx[i]) / (depth * zoom);
-                    const py = (zoom * (this.zPos[i] - z) * this.dy[i]) / (depth * zoom);
+                    const q = t1 - this.spiralLocations[i];
+                    if (q <= 0 || this.zPositions[i] <= newCamZ) { this.visible[i] = 0; continue; }
+                    const depth = this.zPositions[i] - newCamZ;
+                    const px = (zoom * (this.zPositions[i] - z) * this.dx[i]) / (depth * zoom);
+                    const py = (zoom * (this.zPositions[i] - z) * this.dy[i]) / (depth * zoom);
                     if (px > left && px < right && py > top && py < bottom) {
                         this.visible[i] = 1;
                         count++;
@@ -702,10 +836,10 @@
             }
         }
 
-        // ============================================
+        // ================================================================
         // PERFORMANCE MONITOR
-        // ============================================
-        class PerfMon {
+        // ================================================================
+        class PerformanceMonitor {
             constructor() {
                 this.frames = 0;
                 this.fps = 0;
@@ -723,14 +857,16 @@
                     this.fps = Math.round((this.frames * 1000) / (now - this.last));
                     this.frames = 0;
                     this.last = now;
-                    if (this.el) this.el.textContent = `FPS: ${this.fps} | Stars: ${this.visible}/${this.total}`;
+                    if (this.el) {
+                        this.el.textContent = `FPS: ${this.fps} | Stars: ${this.visible}/${this.total}`;
+                    }
                 }
             }
         }
 
-        // ============================================
+        // ================================================================
         // TIMER
-        // ============================================
+        // ================================================================
         class Timer {
             constructor() {
                 this.display = document.getElementById('timer-display');
@@ -743,9 +879,9 @@
             reset() { if (this.display) this.display.textContent = '0.0s'; }
         }
 
-        // ============================================
+        // ================================================================
         // ANIMATION CONTROLLER
-        // ============================================
+        // ================================================================
         class AnimationController {
             constructor(canvas, ctx, cssWidth, cssHeight, dpr, config) {
                 this.canvas = canvas;
@@ -760,17 +896,15 @@
                 this.OFFSET_Y = 28;
 
                 this.starSystem = new StarSystem(this.cfg);
-                this.perf = new PerfMon();
+                this.perf = new PerformanceMonitor();
                 this.timer = new Timer();
 
                 this.spiralCache = new Float32Array(1000 * 2);
                 this.cacheSize = 1000;
                 this.buildSpiralCache();
-
                 this.setupTimeline();
             }
 
-            // ========== SPIRAL ==========
             buildSpiralCache() {
                 for (let i = 0; i < this.cacheSize; i++) {
                     const p = i / (this.cacheSize - 1);
@@ -784,7 +918,10 @@
                 p = this.ease(p, 1.8);
                 const theta = 2 * Math.PI * this.cfg.spiralTurns * Math.sqrt(p);
                 const r = this.cfg.spiralRadius * Math.sqrt(p);
-                return { x: r * Math.cos(theta), y: r * Math.sin(theta) + this.OFFSET_Y };
+                return {
+                    x: r * Math.cos(theta),
+                    y: r * Math.sin(theta) + this.OFFSET_Y
+                };
             }
             getSpiral(p) {
                 p = Utils.clamp(p, 0, 1);
@@ -798,7 +935,6 @@
                 };
             }
 
-            // ========== TIMELINE ==========
             setupTimeline() {
                 if (this.timeline) this.timeline.kill();
                 this.time = 0;
@@ -820,7 +956,6 @@
                 });
             }
 
-            // ========== EASING ==========
             ease(p, g) {
                 return p < 0.5 ? 0.5 * Math.pow(2 * p, g) : 1 - 0.5 * Math.pow(2 * (1 - p), g);
             }
@@ -831,42 +966,34 @@
                 return Math.pow(2, -8 * x) * Math.sin((x * 8 - 0.75) * c) + 1;
             }
 
-            // ========== RENDER ==========
-            render(ctxOverride = null, width = null, height = null) {
-                const ctx = ctxOverride || this.ctx;
-                const w = width || this.cssWidth;
-                const h = height || this.cssHeight;
-
+            render() {
+                const ctx = this.ctx;
                 if (!ctx) return;
 
                 // Background
                 ctx.fillStyle = this.cfg.bgColor;
-                ctx.fillRect(0, 0, w, h);
+                ctx.fillRect(0, 0, this.cssWidth, this.cssHeight);
 
+                // Pusat canvas yang BENAR (cssWidth / 2, cssHeight / 2)
                 ctx.save();
-                ctx.translate(w / 2, h / 2);
+                ctx.translate(this.cssWidth / 2, this.cssHeight / 2);
 
                 const t1 = Utils.clamp(Utils.map(this.time, 0, this.CHANGE_EVENT + 0.25, 0, 1), 0, 1);
                 const t2 = Utils.clamp(Utils.map(this.time, this.CHANGE_EVENT, 1, 0, 1), 0, 1);
-
                 ctx.rotate(-Math.PI * this.ease(t2, 2.7));
 
-                this.drawTrail(t1, ctx, w, h);
-                const visible = this.renderStars(t1, ctx, w, h);
-                this.drawStartDot(ctx, w, h);
+                this.drawTrail(t1, ctx);
+                const visible = this.renderStars(t1, ctx);
+                this.drawStartDot(ctx);
 
                 ctx.restore();
-
-                if (!ctxOverride) {
-                    this.perf.update(visible, this.cfg.numberOfStars);
-                }
-                return visible;
+                this.perf.update(visible, this.cfg.numberOfStars);
             }
 
-            renderStars(t1, ctx, w, h) {
+            renderStars(t1, ctx) {
                 const visibleCount = this.starSystem.updateVisibility(this, t1);
                 const color = Utils.hexToRgba(this.cfg.starColor, this.cfg.starOpacity);
-                v3Pool.releaseAll();
+                vector3Pool.releaseAll();
                 ctx.fillStyle = color;
                 ctx.beginPath();
 
@@ -876,7 +1003,7 @@
 
                 for (let i = 0; i < stars.count; i++) {
                     if (!stars.visible[i]) continue;
-                    const loc = stars.spiralLocs[i];
+                    const loc = stars.spiralLocations[i];
                     const sp = this.getSpiral(loc);
                     const q = t1 - loc;
                     if (q <= 0) continue;
@@ -902,7 +1029,7 @@
                         sy = Utils.lerp(sp.y, sp.y + dy * 0.3, p);
                     } else if (prog < 0.7) {
                         const mid = (prog - 0.3) / 0.4;
-                        const curve = Math.sin(mid * Math.PI) * stars.rotDir[i] * 1.5;
+                        const curve = Math.sin(mid * Math.PI) * stars.rotationDirections[i] * 1.5;
                         const bx = sp.x + dx * 0.3,
                             by = sp.y + dy * 0.3;
                         const tx = sp.x + dx * 0.7,
@@ -913,15 +1040,15 @@
                         sy = Utils.lerp(by, ty, mid) + py * mid;
                     } else {
                         const fin = (prog - 0.7) / 0.3;
-                        const td = stars.distances[i] * stars.expRates[i] * 1.5;
-                        const ang = stars.angles[i] + 1.2 * stars.rotDir[i] * fin * Math.PI;
+                        const td = stars.distances[i] * stars.expansionRates[i] * 1.5;
+                        const ang = stars.angles[i] + 1.2 * stars.rotationDirections[i] * fin * Math.PI;
                         const bx = sp.x + dx * 0.7,
                             by = sp.y + dy * 0.7;
                         sx = Utils.lerp(bx, sp.x + td * Math.cos(ang), fin);
                         sy = Utils.lerp(by, sp.y + td * Math.sin(ang), fin);
                     }
 
-                    const z = stars.zPos[i];
+                    const z = stars.zPositions[i];
                     const vx = (z - c.cameraZ) * sx / c.viewZoom;
                     const vy = (z - c.cameraZ) * sy / c.viewZoom;
 
@@ -931,20 +1058,20 @@
                         const t = (prog - 0.6) / 0.4;
                         sizeMul = Utils.lerp(1.2, stars.finalScales[i], t);
                     }
-                    const dotSize = c.dotSizeBase * stars.weights[i] * sizeMul;
+                    const dotSize = c.dotSizeBase * stars.strokeWeights[i] * sizeMul;
 
-                    const pos = v3Pool.acquire();
+                    const pos = vector3Pool.acquire();
                     pos.x = vx;
                     pos.y = vy;
                     pos.z = z;
-                    this.renderDot(pos, dotSize, ctx, w, h);
+                    this.renderDot(pos, dotSize, ctx);
                     rendered++;
                 }
                 ctx.fill();
                 return rendered;
             }
 
-            renderDot(pos, sizeFactor, ctx, w, h) {
+            renderDot(pos, sizeFactor, ctx) {
                 const t2 = Utils.clamp(Utils.map(this.time, this.CHANGE_EVENT, 1, 0, 1), 0, 1);
                 const newCamZ = this.cfg.cameraZ + this.ease(Math.pow(t2, 1.2), 1.8) * this.cfg.cameraTravelDistance;
                 if (pos.z > newCamZ) {
@@ -958,7 +1085,7 @@
                 }
             }
 
-            drawTrail(t1, ctx, w, h) {
+            drawTrail(t1, ctx) {
                 const color = Utils.hexToRgba(this.cfg.trailColor, this.cfg.trailOpacity);
                 ctx.fillStyle = color;
                 for (let i = 0; i < this.cfg.trailLength; i++) {
@@ -966,8 +1093,12 @@
                     const sw = (this.cfg.trailWidthBase * (1 - t1) + 3.0 * Math.sin(Math.PI * t1)) * f;
                     const pathT = t1 - 0.00015 * i;
                     const pos = this.getSpiral(pathT);
-                    const rot = this.rotateTrail(pos.x, pos.y, pos.x + 5, pos.y + 5, Math.sin(this.time * Math.PI * 2) *
-                        0.5 + 0.5, i % 2 === 0);
+                    const rot = this.rotateTrail(
+                        pos.x, pos.y,
+                        pos.x + 5, pos.y + 5,
+                        Math.sin(this.time * Math.PI * 2) * 0.5 + 0.5,
+                        i % 2 === 0
+                    );
                     ctx.beginPath();
                     ctx.arc(rot.x, rot.y, sw / 2, 0, Math.PI * 2);
                     ctx.fill();
@@ -982,119 +1113,25 @@
                 const ang = Math.atan2(dy, dx) + (orient ? -1 : 1) * Math.PI * this.easeOutElastic(p);
                 const r = Math.sqrt(dx * dx + dy * dy);
                 const bounce = Math.sin(p * Math.PI) * 0.05 * (1 - p);
-                return { x: mx + r * (1 + bounce) * Math.cos(ang), y: my + r * (1 + bounce) * Math.sin(ang) };
+                return {
+                    x: mx + r * (1 + bounce) * Math.cos(ang),
+                    y: my + r * (1 + bounce) * Math.sin(ang)
+                };
             }
 
-            drawStartDot(ctx, w, h) {
+            drawStartDot(ctx) {
                 if (this.time > this.CHANGE_EVENT) {
                     const dy = this.cfg.cameraZ * this.OFFSET_Y / this.cfg.viewZoom;
-                    const pos = v3Pool.acquire();
+                    const pos = vector3Pool.acquire();
                     pos.x = 0;
                     pos.y = dy;
                     pos.z = this.cfg.cameraTravelDistance;
                     const color = Utils.hexToRgba(this.cfg.starColor, this.cfg.starOpacity);
                     ctx.fillStyle = color;
                     ctx.beginPath();
-                    this.renderDot(pos, 2.5, ctx, w, h);
+                    this.renderDot(pos, 2.5, ctx);
                     ctx.fill();
                 }
-            }
-
-            // ========== EXPORT ==========
-            renderToCanvas(canvas, width, height) {
-                const ctx = canvas.getContext('2d');
-                canvas.width = width;
-                canvas.height = height;
-                // Scale the context so everything renders at the right size
-                // We need to set the CSS size to match the canvas size
-                canvas.style.width = width + 'px';
-                canvas.style.height = height + 'px';
-                // No scale because we want 1:1 pixel mapping
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
-                return this.render(ctx, width, height);
-            }
-
-            getCurrentFrameDataURL(width = 3840, height = 2160) {
-                const canvas = document.createElement('canvas');
-                this.renderToCanvas(canvas, width, height);
-                return canvas.toDataURL('image/png');
-            }
-
-            async exportFrame(filename = 'frame.png', width = 3840, height = 2160) {
-                const canvas = document.createElement('canvas');
-                this.renderToCanvas(canvas, width, height);
-                return new Promise((resolve) => {
-                    canvas.toBlob((blob) => {
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = filename;
-                        document.body.appendChild(a);
-                        a.click();
-                        document.body.removeChild(a);
-                        setTimeout(() => URL.revokeObjectURL(url), 1000);
-                        resolve();
-                    }, 'image/png');
-                });
-            }
-
-            async exportAllFrames(width = 3840, height = 2160) {
-                const totalFrames = Math.floor(this.cfg.duration * 30); // 30 fps
-                const progressEl = document.getElementById('export-progress');
-                const statusEl = document.getElementById('export-status');
-                progressEl.classList.add('active');
-
-                // Save current state
-                const currentTime = this.time;
-                const wasRunning = this.running;
-                this.pause();
-
-                // Create a zip file using JSZip
-                // We'll use a simple approach: download one by one with delay
-                // For large sequences, we recommend using a proper zip library
-                // But for simplicity, we'll download as individual files
-
-                const frameRate = 30;
-                const duration = this.cfg.duration;
-                const frameCount = Math.floor(duration * frameRate);
-
-                statusEl.textContent = `Exporting 0 / ${frameCount} frames...`;
-
-                for (let i = 0; i < frameCount; i++) {
-                    const t = i / frameRate;
-                    this.time = t / duration;
-                    if (this.time > 1) this.time = 1;
-
-                    const canvas = document.createElement('canvas');
-                    this.renderToCanvas(canvas, width, height);
-
-                    // Download each frame
-                    const blob = await new Promise((resolve) => {
-                        canvas.toBlob(resolve, 'image/png');
-                    });
-
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    const frameNum = String(i + 1).padStart(4, '0');
-                    a.download = `frame_${frameNum}.png`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    setTimeout(() => URL.revokeObjectURL(url), 100);
-
-                    statusEl.textContent = `Exporting ${i + 1} / ${frameCount} frames...`;
-
-                    // Small delay to prevent browser from blocking
-                    await new Promise(r => setTimeout(r, 50));
-                }
-
-                // Restore state
-                this.time = currentTime;
-                if (wasRunning) this.resume();
-                progressEl.classList.remove('active');
-                statusEl.textContent = 'Export complete!';
-                setTimeout(() => { statusEl.textContent = 'Ready'; }, 3000);
             }
 
             // ========== CONTROL ==========
@@ -1107,6 +1144,7 @@
                 this.setupTimeline();
                 this.render();
             }
+
             resetAnimation() {
                 this.time = 0;
                 this.timer.reset();
@@ -1115,14 +1153,15 @@
                 this.running = true;
                 this.render();
             }
+
             pause() { this.running = false; if (this.timeline) this.timeline.pause(); }
             resume() { this.running = true; if (this.timeline) this.timeline.play(); }
             destroy() { if (this.timeline) this.timeline.kill(); }
         }
 
-        // ============================================
+        // ================================================================
         // CONTROL PANEL
-        // ============================================
+        // ================================================================
         class ControlPanel {
             constructor() {
                 this.currentConfig = { ...DEFAULT_CONFIG };
@@ -1135,59 +1174,62 @@
                 this.setupToggle();
                 this.setupResetButtons();
                 this.setupCollapsibleGroups();
-                this.setupExport();
                 this.loadConfig(DEFAULT_CONFIG);
             }
 
+            // ---- setup controls ----
             setupControls() {
                 // Range controls
-                const rangeControls = [
-                    { id: 'stars', key: 'numberOfStars' },
-                    { id: 'trail', key: 'trailLength' },
-                    { id: 'duration', key: 'duration' },
-                    { id: 'turns', key: 'spiralTurns' },
-                    { id: 'camz', key: 'cameraZ' },
-                    { id: 'travel', key: 'cameraTravelDistance' },
-                    { id: 'zoom', key: 'viewZoom' },
-                    { id: 'radius', key: 'spiralRadius' },
-                    { id: 'star-opacity', key: 'starOpacity' },
-                    { id: 'trail-opacity', key: 'trailOpacity' },
-                    { id: 'trail-width', key: 'trailWidthBase' }
-                ];
-
-                rangeControls.forEach(({ id, key }) => {
-                    const input = document.getElementById(`ctrl-${id}`);
-                    const display = document.getElementById(`val-${id}`);
-                    if (input && display) {
-                        input.addEventListener('input', () => {
-                            const val = parseFloat(input.value);
-                            display.textContent = val;
-                            this.currentConfig[key] = val;
+                const rangeMap = {
+                    'stars': 'numberOfStars',
+                    'trail': 'trailLength',
+                    'duration': 'duration',
+                    'turns': 'spiralTurns',
+                    'camz': 'cameraZ',
+                    'travel': 'cameraTravelDistance',
+                    'zoom': 'viewZoom',
+                    'radius': 'spiralRadius',
+                    'dist-min': 'distMin',
+                    'dist-max': 'distMax',
+                    'star-opacity': 'starOpacity',
+                    'trail-opacity': 'trailOpacity'
+                };
+                Object.entries(rangeMap).forEach(([id, key]) => {
+                    const inp = document.getElementById(`ctrl-${id}`);
+                    const disp = document.getElementById(`val-${id}`);
+                    if (inp && disp) {
+                        inp.addEventListener('input', () => {
+                            const v = parseFloat(inp.value);
+                            disp.textContent = v;
+                            this.currentConfig[key] = v;
                             this.applyConfig();
                         });
                     }
                 });
 
-                // Color controls
-                const colorControls = [
+                // ===== PERBAIKAN COLOR CONTROLS =====
+                const colorMap = [
                     { id: 'star-color', key: 'starColor' },
                     { id: 'trail-color', key: 'trailColor' },
                     { id: 'bg-color', key: 'bgColor' }
                 ];
+                colorMap.forEach(({ id, key }) => {
+                    const inp = document.getElementById(`ctrl-${id}`);
+                    const disp = document.getElementById(`val-${id}`);
+                    if (inp && disp) {
+                        // set initial value from config
+                        inp.value = this.currentConfig[key] || '#ffffff';
+                        disp.textContent = inp.value.toUpperCase();
 
-                colorControls.forEach(({ id, key }) => {
-                    const input = document.getElementById(`ctrl-${id}`);
-                    const display = document.getElementById(`val-${id}`);
-                    if (input && display) {
-                        input.value = this.currentConfig[key] || '#ffffff';
-                        display.textContent = input.value.toUpperCase();
-
-                        input.addEventListener('input', () => {
-                            const val = input.value;
-                            display.textContent = val.toUpperCase();
-                            this.currentConfig[key] = val;
+                        inp.addEventListener('input', () => {
+                            const v = inp.value;
+                            disp.textContent = v.toUpperCase();
+                            this.currentConfig[key] = v;
+                            console.log(`🎨 ${key} = ${v}`);
                             this.applyConfig();
                         });
+                    } else {
+                        console.warn(`⚠️ Color control not found: ${id}`);
                     }
                 });
             }
@@ -1197,15 +1239,21 @@
                     btn.addEventListener('click', () => {
                         const color = btn.dataset.color;
                         const parent = btn.closest('.control-item');
-                        const input = parent?.querySelector('input[type="color"]');
-                        const display = parent?.querySelector('.color-hex');
-                        if (input && display) {
-                            input.value = color;
-                            display.textContent = color.toUpperCase();
-                            const id = input.id.replace('ctrl-', '');
-                            const key = id.replace('-', '');
-                            this.currentConfig[key] = color;
-                            this.applyConfig();
+                        const inp = parent?.querySelector('input[type="color"]');
+                        const disp = parent?.querySelector('.color-hex');
+                        if (inp && disp) {
+                            inp.value = color;
+                            disp.textContent = color.toUpperCase();
+                            // cari key dari id input
+                            const id = inp.id.replace('ctrl-', '');
+                            const key = id === 'star-color' ? 'starColor' :
+                                id === 'trail-color' ? 'trailColor' :
+                                id === 'bg-color' ? 'bgColor' : null;
+                            if (key) {
+                                this.currentConfig[key] = color;
+                                console.log(`🎨 Preset ${key} = ${color}`);
+                                this.applyConfig();
+                            }
                         }
                     });
                 });
@@ -1241,17 +1289,16 @@
 
             setupToggle() {
                 const panel = document.getElementById('control-panel');
-                const toggle = document.getElementById('toggle-panel-btn');
-                const collapse = document.getElementById('collapse-panel');
-                let open = true;
-                const fn = () => {
-                    open = !open;
-                    panel.classList.toggle('collapsed', !open);
-                    toggle.textContent = open ? '✕' : '⚙️';
-                    toggle.style.right = open ? '360px' : '20px';
+                const toggleBtn = document.getElementById('toggle-panel-btn');
+                const collapseBtn = document.getElementById('collapse-panel');
+                const toggle = () => {
+                    this.isPanelOpen = !this.isPanelOpen;
+                    panel.classList.toggle('collapsed', !this.isPanelOpen);
+                    toggleBtn.textContent = this.isPanelOpen ? '✕' : '⚙️';
+                    toggleBtn.style.right = this.isPanelOpen ? '360px' : '20px';
                 };
-                toggle.addEventListener('click', fn);
-                collapse.addEventListener('click', fn);
+                toggleBtn.addEventListener('click', toggle);
+                collapseBtn.addEventListener('click', toggle);
             }
 
             setupResetButtons() {
@@ -1266,27 +1313,7 @@
                 });
             }
 
-            setupExport() {
-                document.getElementById('export-single').addEventListener('click', async () => {
-                    if (this.controller) {
-                        const statusEl = document.getElementById('export-status');
-                        const progressEl = document.getElementById('export-progress');
-                        progressEl.classList.add('active');
-                        statusEl.textContent = 'Exporting frame...';
-                        await this.controller.exportFrame(`frame_${Date.now()}.png`, 3840, 2160);
-                        statusEl.textContent = 'Frame exported!';
-                        setTimeout(() => { statusEl.textContent = 'Ready';
-                            progressEl.classList.remove('active'); }, 2000);
-                    }
-                });
-
-                document.getElementById('export-all').addEventListener('click', async () => {
-                    if (this.controller) {
-                        await this.controller.exportAllFrames(3840, 2160);
-                    }
-                });
-            }
-
+            // ---- config management ----
             loadConfig(cfg) {
                 this.currentConfig = { ...cfg };
                 const map = {
@@ -1298,21 +1325,25 @@
                     'travel': 'cameraTravelDistance',
                     'zoom': 'viewZoom',
                     'radius': 'spiralRadius',
+                    'dist-min': 'distMin',
+                    'dist-max': 'distMax',
                     'star-opacity': 'starOpacity',
                     'trail-opacity': 'trailOpacity',
-                    'trail-width': 'trailWidthBase',
                     'star-color': 'starColor',
                     'trail-color': 'trailColor',
                     'bg-color': 'bgColor'
                 };
                 Object.entries(map).forEach(([id, key]) => {
-                    const input = document.getElementById(`ctrl-${id}`);
-                    const display = document.getElementById(`val-${id}`);
-                    if (input && display) {
+                    const inp = document.getElementById(`ctrl-${id}`);
+                    const disp = document.getElementById(`val-${id}`);
+                    if (inp && disp) {
                         const val = cfg[key];
-                        input.value = val;
-                        if (typeof val === 'string' && val.startsWith('#')) display.textContent = val.toUpperCase();
-                        else display.textContent = val;
+                        inp.value = val;
+                        if (typeof val === 'string' && val.startsWith('#')) {
+                            disp.textContent = val.toUpperCase();
+                        } else {
+                            disp.textContent = val;
+                        }
                     }
                 });
             }
@@ -1328,11 +1359,11 @@
             setController(ctrl) { this.controller = ctrl; }
         }
 
-        // ============================================
+        // ================================================================
         // INIT
-        // ============================================
+        // ================================================================
         function init() {
-            const canvas = document.getElementById('canvas-main');
+            const canvas = document.getElementById('canvas');
             const wrapper = document.getElementById('canvas-wrapper');
             const ctx = canvas.getContext('2d', { alpha: false, desynchronized: true });
 
@@ -1359,7 +1390,6 @@
                     controller.cssHeight = cssH;
                     controller.dpr = dpr;
                 }
-
                 return { cssW, cssH, dpr };
             }
 
@@ -1367,17 +1397,16 @@
             controller = new AnimationController(canvas, ctx, cssW, cssH, dpr, panel.currentConfig);
             panel.setController(controller);
 
-            // Resize observer
             let timeout;
             const ro = new ResizeObserver(() => {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => { resize(); }, 50);
+                timeout = setTimeout(() => resize(), 50);
             });
             ro.observe(wrapper);
 
             window.addEventListener('resize', () => {
                 clearTimeout(timeout);
-                timeout = setTimeout(() => { resize(); }, 100);
+                timeout = setTimeout(() => resize(), 100);
             });
 
             document.addEventListener('visibilitychange', () => {
@@ -1386,14 +1415,11 @@
             });
 
             document.querySelector('[data-preset="default"]')?.classList.add('active');
-
-            console.log('✅ Spiral Animation initialized');
-            console.log('📸 Export 4K frames available (3840×2160)');
-
+            console.log('✅ Spiral Animation ready.');
+            console.log(`📐 Canvas center: (${cssW/2}, ${cssH/2})`);
             return controller;
         }
 
-        // Start the application
         const app = init();
         window.__app = app;
     </script>
